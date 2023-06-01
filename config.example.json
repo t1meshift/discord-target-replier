@@ -1,0 +1,15 @@
+{
+  "app_id": "",
+  "token": "",
+  "guild_id": 0,
+  "target": {
+    "username": "test",
+    "discriminator": 1234
+  },
+  "reaction": "emoji_name:id",
+  "response_probability": 30,
+  "replies": [
+    "reply",
+    "another reply"
+  ]
+}

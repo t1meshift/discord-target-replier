@@ -1,0 +1,14 @@
+{
+  "name" : "discord-target-replier",
+  "version-string" : "1.0.0",
+  "builtin-baseline" : "2f56fdad4bcf43c21ec6f952cf7b91c8c43c5c0d",
+  "dependencies" : [ {
+    "name" : "dpp",
+    "version>=" : "10.0.24",
+    "$comment" : "    target_link_libraries(main PRIVATE dpp::dpp)\n"
+  }, {
+    "name" : "nlohmann-json",
+    "version>=" : "3.11.2",
+    "$comment" : "    find_package(nlohmann_json CONFIG REQUIRED)\n\n    target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)\n"
+  } ]
+}
