@@ -1,0 +1,71 @@
+name: Build release binaries
+
+on:
+  release:
+    types: [published]
+    
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      matrix:
+        config:
+        - os: ubuntu-20.04
+          vcpkg_triplet: x64-linux-release
+        - os: macos-11
+          vcpkg_triplet: x64-osx-release
+        - os: windows-2019
+          vcpkg_triplet: x64-windows-release
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+        lfs: true
+    
+    - name: vcpkg build
+      uses: johnwason/vcpkg-action@v5
+      with:
+        # The vcpkg target triplet to use. This must be set. For windows, 
+        # x64-windows-release is recommended if you don't need debug libraries
+        triplet: ${{ matrix.config.vcpkg_triplet }}
+        # Additional string to add to cache key. If using a build matrix or building different configurations
+        # on the same operating system, be sure to include an additional cache key to separate the caches. (optional)
+        cache-key: ${{ matrix.config.os }}
+        # GitHub token to authenticate API requests. This is necessary to determine vcpkg version to checkout
+        # Recommended to use ${{ github.token }}
+        token: ${{ github.token }}
+        # Directory containing vcpkg.json manifest file. Cannot be used with pkgs.
+        manifest-dir: ${{github.workspace}}
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -S ${{github.workspace}} -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Pack release
+      run: |
+        cpack --config ${{github.workspace}}/build/CPackConfig.cmake 
+        cp -r ${{github.workspace}}/build/package/*.zip ${{github.workspace}}/
+        
+    - name: Release artifacts
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: '*.zip'
+        
+        
+
+
