@@ -6,13 +6,16 @@ endif()
 
 cmake_minimum_required(VERSION 3.22)
 project("${PROJECT_NAME}"
-	VERSION 1.0.0
+	VERSION 2.0.0
 	DESCRIPTION "A simple Discord bot for replying messages from a given user."
 	LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable("${PROJECT_NAME}" main.cpp Config.cpp Config.h)
+
+find_package(fmt CONFIG REQUIRED)
+target_link_libraries("${PROJECT_NAME}" PRIVATE fmt::fmt)
 
 set(nlohmann-json_IMPLICIT_CONVERSIONS OFF)
 find_package(nlohmann_json CONFIG REQUIRED)
@@ -36,6 +39,7 @@ set(INCLUDE_LIBS
 	"libsodium(.+)"
 	"opus(.+)"
 	"zlib(.+)"
+	"fmt(.+)"
 	)
 
 include(GNUInstallDirs)

@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <random>
 #include <dpp/dpp.h>
+#include <fmt/format.h>
 #include "Config.h"
 
 int main() {
@@ -15,6 +16,8 @@ int main() {
 
 	griha::Config config(config_path);
 	const auto reply_list = config.replies();
+	const auto on_delete_reply_list = config.on_delete_replies();
+	const auto targets = config.targets();
 
 	// Validate config file
 	if (config.app_id().empty()) {
@@ -40,13 +43,15 @@ int main() {
 	std::random_device rd;
 	std::mt19937 gen(rd());
 
-	bot.on_message_create([&bot, &reply_list, config, &gen](const dpp::message_create_t& event) {
-		auto username = config.target_username();
-		auto discriminator = config.target_discriminator();
-
+	bot.on_message_create([&bot, &reply_list, &targets, config, &gen](const dpp::message_create_t& event) {
 		const auto& author_data = event.msg.author;
-		if (author_data.username != username
-			|| author_data.discriminator != discriminator) {
+
+		auto found_target = std::find_if(targets.cbegin(), targets.cend(), [&author_data](const auto& v) {
+			return author_data.username == v.username &&
+				author_data.discriminator == v.discriminator;
+		});
+
+		if (found_target == targets.cend()) {
 			return;
 		}
 
@@ -59,13 +64,64 @@ int main() {
 			return;
 		}
 
-		if (!reply_list.empty()) {
-			std::uniform_int_distribution<size_t> reply_dist(0, reply_list.size() - 1);
+		const auto& custom_replies = found_target->additional.replies;
+		std::vector<std::string> total_replies;
+		total_replies.reserve(reply_list.size() + custom_replies.size());
+		total_replies.insert(total_replies.end(),
+			custom_replies.begin(), custom_replies.end());
+		total_replies.insert(total_replies.end(),
+			reply_list.begin(), reply_list.end());
 
-			const auto& reply_contents = reply_list.at(reply_dist(gen));
+		if (!total_replies.empty()) {
+			std::uniform_int_distribution<size_t> reply_dist(0, total_replies.size() - 1);
+			const auto& reply_format = total_replies.at(reply_dist(gen));
+
+			const auto reply_contents = fmt::format(reply_format,
+				fmt::arg("user",
+					fmt::format("<@{}>",
+						static_cast<uint64_t>(author_data.id))));
 
 			dpp::message msg(event.msg.channel_id, reply_contents);
 			event.reply(msg);
+		}
+	});
+
+	bot.on_message_delete([&bot, &on_delete_reply_list, &targets, config, &gen](const dpp::message_delete_t& event) {
+		const auto& author_data = event.deleted->author;
+
+		auto found_target = std::find_if(targets.cbegin(), targets.cend(), [&author_data](const auto& v) {
+			return author_data.username == v.username &&
+				author_data.discriminator == v.discriminator;
+		});
+
+		if (found_target == targets.cend()) {
+			return;
+		}
+
+		std::uniform_int_distribution<> response_dist(0, 100);
+		if (response_dist(gen) < 100 - config.response_probability()) {
+			return;
+		}
+
+		const auto& custom_replies = found_target->additional.on_delete_replies;
+		std::vector<std::string> total_replies;
+		total_replies.reserve(on_delete_reply_list.size() + custom_replies.size());
+		total_replies.insert(total_replies.end(),
+			custom_replies.begin(), custom_replies.end());
+		total_replies.insert(total_replies.end(),
+			on_delete_reply_list.begin(), on_delete_reply_list.end());
+
+		if (!total_replies.empty()) {
+			std::uniform_int_distribution<size_t> reply_dist(0, total_replies.size() - 1);
+			const auto& reply_format = total_replies.at(reply_dist(gen));
+
+			const auto reply_contents = fmt::format(reply_format,
+				fmt::arg("user",
+					fmt::format("<@{}>",
+						static_cast<uint64_t>(author_data.id))));
+
+			dpp::message msg(event.deleted->channel_id, reply_contents);
+			bot.message_create(msg);
 		}
 	});
 

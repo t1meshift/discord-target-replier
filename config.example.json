@@ -2,14 +2,19 @@
   "app_id": "",
   "token": "",
   "guild_id": 0,
-  "target": {
+  "target": [{
     "username": "test",
-    "discriminator": 1234
-  },
+    "discriminator": 1234,
+    "additional": {
+      "replies": [],
+      "on_delete_replies": []
+    }
+  }],
   "reaction": "emoji_name:id",
   "response_probability": 30,
   "replies": [
     "reply",
     "another reply"
-  ]
+  ],
+  "on_delete_replies": []
 }

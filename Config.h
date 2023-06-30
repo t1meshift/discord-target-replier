@@ -6,6 +6,21 @@
 #include <nlohmann/json.hpp>
 
 namespace griha {
+	struct AdditionalTargetParams {
+		std::vector<std::string> replies;
+		std::vector<std::string> on_delete_replies;
+	};
+	void to_json(nlohmann::json& j, const AdditionalTargetParams& t);
+	void from_json(const nlohmann::json& j, AdditionalTargetParams& t);
+
+	struct TargetInfo {
+		std::string username;
+		uint16_t discriminator;
+		AdditionalTargetParams additional;
+	};
+	void to_json(nlohmann::json& j, const TargetInfo& t);
+	void from_json(const nlohmann::json& j, TargetInfo& t);
+
 	class Config {
 	public:
 		explicit Config(std::string_view filename);
@@ -15,11 +30,11 @@ namespace griha {
 		[[nodiscard]] std::string app_id() const;
 		[[nodiscard]] std::string token() const;
 		[[nodiscard]] uint64_t guild_id() const;
-		[[nodiscard]] std::string target_username() const;
-		[[nodiscard]] uint16_t target_discriminator() const;
+		[[nodiscard]] std::vector<TargetInfo> targets() const;
 		[[nodiscard]] std::string reaction() const;
 		[[nodiscard]] uint8_t response_probability() const;
 		[[nodiscard]] std::vector<std::string> replies() const;
+		[[nodiscard]] std::vector<std::string> on_delete_replies() const;
 	private:
 		nlohmann::json config_;
 
